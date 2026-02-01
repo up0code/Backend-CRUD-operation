@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend CRUD Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 20px; }
+        input { margin: 5px; padding: 8px; }
+        button { padding: 8px 16px; margin: 5px; }
+        #users { margin-top: 20px; }
+        .user { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>User CRUD Operations</h1>
+
+    <h2>Create User</h2>
+    <div id="createForm">
+        <input type="text" id="name" placeholder="Name">
+        <input type="email" id="email" placeholder="Email">
+        <button id="createBtn">Create</button>
+    </div>
+
+    <h2>Users</h2>
+    <button id="loadUsers">Load Users</button>
+    <div id="users"></div>
+
+    <script>
+        const API_BASE = '/api/users';
+
+        // Create user
+        document.getElementById('createBtn').addEventListener('click', async () => {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    alert('Server error: ' + response.status + ' ' + errorText);
+                    return;
+                }
+                const user = await response.json();
+                alert('User created: ' + JSON.stringify(user));
+                document.getElementById('name').value = '';
+                document.getElementById('email').value = '';
+                loadUsers();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Load users
+        document.getElementById('loadUsers').addEventListener('click', loadUsers);
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(API_BASE);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    alert('Server error: ' + response.status + ' ' + errorText);
+                    return;
+                }
+                const users = await response.json();
+                const usersDiv = document.getElementById('users');
+                usersDiv.innerHTML = users.map(user => `
+                    <div class="user">
+                        <p><strong>${user.name}</strong> - ${user.email}</p>
+                        <button onclick="updateUser('${user._id}')">Update</button>
+                        <button onclick="deleteUser('${user._id}')">Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Update user (simple prompt)
+        async function updateUser(id) {
+            const newName = prompt('New name:');
+            const newEmail = prompt('New email:');
+            if (newName && newEmail) {
+                try {
+                    const response = await fetch(`${API_BASE}/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName, email: newEmail })
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        alert('Server error: ' + response.status + ' ' + errorText);
+                        return;
+                    }
+                    const user = await response.json();
+                    alert('User updated: ' + JSON.stringify(user));
+                    loadUsers();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+
+        // Delete user
+        async function deleteUser(id) {
+            if (confirm('Delete user?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        alert('Server error: ' + response.status + ' ' + errorText);
+                        return;
+                    }
+                    alert('User deleted');
+                    loadUsers();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+</html>
